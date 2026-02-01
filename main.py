@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """CLI entry point for the Eleven Labs Voice App."""
 
+import readline
 import sys
 
 from audio_player import AudioPlayer
-from cache_manager import get_cached_audio, is_cached, list_cached_phrases, save_to_cache
+from cache_manager import (
+    get_cached_audio,
+    is_cached,
+    list_cached_phrases,
+    save_to_cache,
+    sanitize_phrase,
+)
 from config import (
     add_user,
     get_current_user,
@@ -14,6 +21,41 @@ from config import (
 )
 from tts_client import TTSClient
 
+# Global state for autocomplete
+_cached_phrases = []
+_current_user_id = None
+
+
+def update_cached_phrases(user_id: str | None):
+    """Update the cached phrases list for autocomplete."""
+    global _cached_phrases, _current_user_id
+    _current_user_id = user_id
+    if user_id:
+        _cached_phrases = list_cached_phrases(user_id)
+    else:
+        _cached_phrases = []
+
+
+def completer(text: str, state: int) -> str | None:
+    """Autocomplete function for readline."""
+    # Convert input to sanitized form for matching
+    sanitized_input = sanitize_phrase(text) if text else ""
+
+    # Find matches
+    matches = [p for p in _cached_phrases if p.startswith(sanitized_input)]
+
+    if state < len(matches):
+        # Return the match with spaces instead of underscores for readability
+        return matches[state].replace('_', ' ')
+    return None
+
+
+def setup_readline():
+    """Configure readline for history and autocomplete."""
+    readline.set_completer(completer)
+    readline.parse_and_bind('tab: complete')
+    readline.set_completer_delims('')
+
 
 def print_help():
     """Print help message."""
@@ -21,6 +63,8 @@ def print_help():
 Eleven Labs Voice App
 =====================
 Type text to speak it using TTS.
+Use Tab for autocomplete from cached phrases.
+Use arrow keys to navigate input history.
 
 Commands:
   /user <id>                  - Switch to user
@@ -43,6 +87,8 @@ def main():
     tts_client = TTSClient(config["api_key"])
     player = AudioPlayer()
 
+    setup_readline()
+
     print("Eleven Labs Voice App")
     print("Type /help for commands, /quit to exit")
     print()
@@ -50,6 +96,7 @@ def main():
     current_user = get_current_user(config)
     if current_user:
         print(f"Current user: {current_user['name']}")
+        update_cached_phrases(config["current_user"])
     else:
         print("No user configured. Use /add to create one.")
 
@@ -91,6 +138,7 @@ def main():
                     elif switch_user(config, args):
                         current_user = get_current_user(config)
                         print(f"Switched to user: {current_user['name']}")
+                        update_cached_phrases(config["current_user"])
                     else:
                         print(f"User '{args}' not found.")
 
@@ -103,6 +151,7 @@ def main():
                         add_user(config, uid, voice_id, name)
                         current_user = get_current_user(config)
                         print(f"Added user: {name}")
+                        update_cached_phrases(config["current_user"])
 
                 elif cmd == "/cache":
                     if not args:
@@ -120,6 +169,7 @@ def main():
                                     args, current_user["voice_id"]
                                 )
                                 save_to_cache(user_id, args, audio)
+                                update_cached_phrases(user_id)
                                 print("Phrase cached successfully.")
                             except Exception as e:
                                 print(f"Error caching phrase: {e}")
@@ -128,13 +178,13 @@ def main():
                     if not current_user:
                         print("No user selected.")
                     else:
-                        hashes = list_cached_phrases(config["current_user"])
-                        if not hashes:
+                        phrases = list_cached_phrases(config["current_user"])
+                        if not phrases:
                             print("No cached phrases.")
                         else:
-                            print(f"Cached phrases ({len(hashes)} files):")
-                            for h in hashes:
-                                print(f"  {h}")
+                            print(f"Cached phrases ({len(phrases)}):")
+                            for p in phrases:
+                                print(f"  {p}")
 
                 else:
                     print(f"Unknown command: {cmd}")
@@ -160,6 +210,7 @@ def main():
                             text, current_user["voice_id"]
                         )
                         save_to_cache(user_id, text, audio)
+                        update_cached_phrases(user_id)
                         player.play(audio)
                     except Exception as e:
                         print(f"Error: {e}")

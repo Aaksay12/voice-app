@@ -1,15 +1,28 @@
 """Cache manager for pre-cached audio files."""
 
-import hashlib
+import re
 from pathlib import Path
 
 CACHE_DIR = Path(__file__).parent / "cache"
+MAX_FILENAME_LENGTH = 100
+
+
+def sanitize_phrase(phrase: str) -> str:
+    """Convert phrase to a safe filename (no punctuation, lowercase, underscores)."""
+    # Remove punctuation and convert to lowercase
+    sanitized = re.sub(r'[^\w\s]', '', phrase.lower())
+    # Replace whitespace with underscores
+    sanitized = re.sub(r'\s+', '_', sanitized.strip())
+    # Limit length
+    if len(sanitized) > MAX_FILENAME_LENGTH:
+        sanitized = sanitized[:MAX_FILENAME_LENGTH]
+    return sanitized
 
 
 def get_cache_path(user_id: str, phrase: str) -> Path:
     """Get the cache file path for a user and phrase."""
-    phrase_hash = hashlib.md5(phrase.encode()).hexdigest()
-    return CACHE_DIR / user_id / f"{phrase_hash}.mp3"
+    filename = sanitize_phrase(phrase)
+    return CACHE_DIR / user_id / f"{filename}.mp3"
 
 
 def get_cached_audio(user_id: str, phrase: str) -> bytes | None:
@@ -29,11 +42,11 @@ def save_to_cache(user_id: str, phrase: str, audio_data: bytes) -> Path:
 
 
 def list_cached_phrases(user_id: str) -> list[str]:
-    """List all cached file hashes for a user."""
+    """List all cached phrase names for a user."""
     user_cache_dir = CACHE_DIR / user_id
     if not user_cache_dir.exists():
         return []
-    return [f.stem for f in user_cache_dir.glob("*.mp3")]
+    return sorted([f.stem for f in user_cache_dir.glob("*.mp3")])
 
 
 def is_cached(user_id: str, phrase: str) -> bool:
