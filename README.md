@@ -93,6 +93,37 @@ The `users.json` file stores user configurations:
 - **voice_id**: Eleven Labs voice ID (find these in your Eleven Labs dashboard)
 - **api_key**: Can be set here or via `ELEVENLABS_API_KEY` environment variable (recommended)
 
+## API Key Setup
+
+### Required Permissions
+
+Your Eleven Labs API key needs the following access:
+
+| Permission | Required | Description |
+|------------|----------|-------------|
+| Text to Speech | Yes | For generating audio from text |
+| Voices (read) | Yes | To access voice IDs |
+| Voice Generation | No | Only if creating custom voices |
+
+### Getting Your API Key
+
+1. Create an account at [elevenlabs.io](https://elevenlabs.io) (free tier includes API access)
+2. Go to **Developers** → **API Keys** in the sidebar
+3. Click **Create** to generate a new key
+4. Either leave it unrestricted, or enable specific permissions for Text to Speech and Voices (read)
+
+### Pricing
+
+- Text-to-speech is billed **per character**
+- The free tier includes limited characters per month
+- If you have usage-based billing enabled, you can set a credit limit on your API key to avoid unexpected charges
+
+### Security
+
+- Store the key as an environment variable (`ELEVENLABS_API_KEY`)
+- Never commit it to version control (`users.json` is in `.gitignore` for this reason)
+- Treat your API key like a password
+
 ## Finding Voice IDs
 
 1. Log in to [Eleven Labs](https://elevenlabs.io/)
