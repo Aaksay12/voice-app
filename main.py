@@ -6,6 +6,7 @@ import sys
 
 from audio_player import AudioPlayer
 from cache_manager import (
+    delete_from_cache_by_name,
     get_cached_audio,
     is_cached,
     list_cached_phrases,
@@ -53,8 +54,12 @@ def completer(text: str, state: int) -> str | None:
 def setup_readline():
     """Configure readline for history and autocomplete."""
     readline.set_completer(completer)
-    readline.parse_and_bind('tab: complete')
     readline.set_completer_delims('')
+    # macOS uses libedit which needs different binding syntax
+    if 'libedit' in readline.__doc__:
+        readline.parse_and_bind('bind ^I rl_complete')
+    else:
+        readline.parse_and_bind('tab: complete')
 
 
 def print_help():
@@ -72,6 +77,7 @@ Commands:
   /add <id> <voice_id> <name> - Add a new user
   /cache <phrase>             - Pre-cache a phrase
   /list-cache                 - List cached phrases for current user
+  /delete-cache <name>        - Delete a cached phrase by name
   /help                       - Show this help
   /quit                       - Exit
 """)
@@ -185,6 +191,22 @@ def main():
                             print(f"Cached phrases ({len(phrases)}):")
                             for p in phrases:
                                 print(f"  {p}")
+
+                elif cmd == "/delete-cache":
+                    if not args:
+                        print("Usage: /delete-cache <name>")
+                        print("Use /list-cache to see cached phrase names.")
+                    elif not current_user:
+                        print("No user selected.")
+                    else:
+                        user_id = config["current_user"]
+                        # Allow input with spaces (convert to underscore format)
+                        cache_name = args.replace(' ', '_').lower()
+                        if delete_from_cache_by_name(user_id, cache_name):
+                            update_cached_phrases(user_id)
+                            print(f"Deleted: {cache_name}")
+                        else:
+                            print(f"Not found: {cache_name}")
 
                 else:
                     print(f"Unknown command: {cmd}")

@@ -52,3 +52,21 @@ def list_cached_phrases(user_id: str) -> list[str]:
 def is_cached(user_id: str, phrase: str) -> bool:
     """Check if a phrase is cached for a user."""
     return get_cache_path(user_id, phrase).exists()
+
+
+def delete_from_cache(user_id: str, phrase: str) -> bool:
+    """Delete a phrase from cache. Returns True if deleted, False if not found."""
+    cache_path = get_cache_path(user_id, phrase)
+    if cache_path.exists():
+        cache_path.unlink()
+        return True
+    return False
+
+
+def delete_from_cache_by_name(user_id: str, filename: str) -> bool:
+    """Delete a cache file by its sanitized name. Returns True if deleted."""
+    cache_path = CACHE_DIR / user_id / f"{filename}.mp3"
+    if cache_path.exists():
+        cache_path.unlink()
+        return True
+    return False
