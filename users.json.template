@@ -1,0 +1,14 @@
+{
+  "users": {
+    "alice": {
+      "voice_id": "EXAVITQu4vr4xnSDxMaL",
+      "name": "Alice (Sarah)"
+    },
+    "bob": {
+      "voice_id": "JBFqnCBsd6RMkjVDRZzb",
+      "name": "Bob (George)"
+    }
+  },
+  "current_user": "alice",
+  "api_key": ""
+}
